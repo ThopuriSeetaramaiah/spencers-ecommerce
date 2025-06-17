@@ -17,13 +17,11 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
     
     - name: Install dependencies
       run: |
         cd frontend
-        npm ci || npm install
+        npm install
     
     - name: Build frontend
       run: |
@@ -68,7 +66,8 @@ jobs:
     - name: Build with Maven
       run: |
         cd backend
-        ./mvnw clean package -DskipTests
+        # Use Maven directly since we're in a GitHub Actions environment
+        mvn clean package -DskipTests
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Maven Wrapper Script
+
+# Find Maven executable
+if [ -x "$(command -v mvn)" ]; then
+  MAVEN_EXEC="mvn"
+elif [ -x "$(command -v mvn.cmd)" ]; then
+  MAVEN_EXEC="mvn.cmd"
+else
+  echo "Maven not found. Please install Maven or use a Docker image with Maven."
+  exit 1
+fi
+
+# Execute Maven with all arguments
+exec $MAVEN_EXEC "$@"
