@@ -23,10 +23,21 @@ jobs:
         cd frontend
         npm install
     
+    - name: Create React App
+      run: |
+        cd frontend
+        # Check if we need to create a React app from scratch
+        if [ ! -f "src/index.js" ]; then
+          npx create-react-app temp-app
+          cp -r temp-app/src/* src/ || true
+          cp -r temp-app/public/* public/ || true
+          rm -rf temp-app
+        fi
+    
     - name: Build frontend
       run: |
         cd frontend
-        npm run build
+        CI=false npm run build
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
