@@ -39,25 +39,8 @@ jobs:
         cd frontend
         CI=false npm run build
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Set lowercase repository name
-      run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-    
-    - name: Build and push frontend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        push: true
-        tags: ghcr.io/${{ env.REPO_LOWER }}/frontend:latest
+    # Skip Docker image build and push for now
+    # We'll use local images in Minikube instead
     
     - name: Upload frontend build artifact
       uses: actions/upload-artifact@v4
@@ -83,25 +66,8 @@ jobs:
         # Use Maven directly since we're in a GitHub Actions environment
         mvn clean package -DskipTests
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Set lowercase repository name
-      run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-    
-    - name: Build and push backend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        push: true
-        tags: ghcr.io/${{ env.REPO_LOWER }}/backend:latest
+    # Skip Docker image build and push for now
+    # We'll use local images in Minikube instead
     
     - name: Upload backend build artifact
       uses: actions/upload-artifact@v4
@@ -122,17 +88,40 @@ jobs:
       id: minikube-ip
       run: echo "ip=$(minikube ip)" >> $GITHUB_OUTPUT
     
-    - name: Set lowercase repository name
-      run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+    - name: Download frontend build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/build
     
-    - name: Update Kubernetes manifests
+    - name: Download backend build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-build
+        path: backend/target
+    
+    - name: Build Docker images locally in Minikube
       run: |
-        sed -i "s|spencers/frontend:latest|ghcr.io/${{ env.REPO_LOWER }}/frontend:latest|g" k8s/frontend-deployment.yaml
-        sed -i "s|spencers/backend:latest|ghcr.io/${{ env.REPO_LOWER }}/backend:latest|g" k8s/backend-deployment.yaml
+        # Use Minikube's Docker daemon
+        eval $(minikube docker-env)
+        
+        # Build frontend image
+        cd frontend
+        docker build -t spencers/frontend:latest .
+        
+        # Build backend image
+        cd ../backend
+        docker build -t spencers/backend:latest .
     
     - name: Create MySQL Secret
       run: |
         kubectl create secret generic mysql-secret --from-literal=password=spencers-password || true
+    
+    - name: Update Kubernetes manifests for local images
+      run: |
+        # Set imagePullPolicy to Never to use local images
+        sed -i 's/imagePullPolicy: Always/imagePullPolicy: Never/g' k8s/frontend-deployment.yaml || true
+        sed -i 's/imagePullPolicy: Always/imagePullPolicy: Never/g' k8s/backend-deployment.yaml || true
     
     - name: Deploy to Minikube
       run: |
