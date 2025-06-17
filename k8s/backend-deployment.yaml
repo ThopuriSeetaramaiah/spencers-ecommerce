@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spencers-backend
+  labels:
+    app: spencers-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spencers-backend
+  template:
+    metadata:
+      labels:
+        app: spencers-backend
+    spec:
+      containers:
+      - name: backend
+        image: spencers/backend:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spencers-backend
+spec:
+  selector:
+    app: spencers-backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

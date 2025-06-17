@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spencers-frontend
+  labels:
+    app: spencers-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spencers-frontend
+  template:
+    metadata:
+      labels:
+        app: spencers-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: spencers/frontend:latest
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spencers-frontend
+spec:
+  selector:
+    app: spencers-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: NodePort
